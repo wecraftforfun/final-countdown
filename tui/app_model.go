@@ -75,7 +75,7 @@ func InitialModel() AppModel {
 		Keys:     newListKeyMap(),
 		Help:     help.New(),
 		Inputs:   make([]textinput.Model, 3),
-		List:     list.New(nil, helpers.NewListDelegate(), 1000, 10),
+		List:     list.New(nil, helpers.NewListDelegate(), 1000, 15),
 	}
 	m.List.SetShowHelp(false)
 	m.List.KeyMap = list.DefaultKeyMap()
@@ -113,14 +113,13 @@ func createForms(m AppModel) []textinput.Model {
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case helpers.UpdateListMsg:
-
 		for _, v := range msg.Countdowns {
 			m.List.InsertItem(len(m.List.Items()), list.Item(v))
+			m.Choices = append(m.Choices, v)
 		}
 	case helpers.ErrorMsg:
 		m.List.NewStatusMessage(msg.Error())
 	case helpers.GoBackToList:
-
 		m.IsInsertMode = false
 		m.FocusIndex = 0
 		m.Cursor = 0
@@ -147,7 +146,6 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.List.CursorDown()
 			}
-
 		case m.IsInsertMode && (msg.String() == "up" || msg.String() == "down"):
 			// Moving through the displayed inputs
 			if msg.String() == "up" {
@@ -183,11 +181,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			c := models.CountDown{
 				Name:    m.Inputs[0].Value(),
 				Desc:    m.Inputs[1].Value(),
-				DueDate: d,
+				DueDate: models.CustomTime{Time: d},
 			}
 			m.Choices = append(m.Choices, c)
 			m.List.InsertItem(len(m.Choices), c)
-			return tea.Model(m), tea.Batch(cmds.GoBackToList)
+			return tea.Model(m), tea.Batch(cmds.SaveListCmd(m.Choices), cmds.GoBackToList)
 		case key.Matches(msg, m.Keys.quit):
 			return tea.Model(m), tea.Quit
 		case key.Matches(msg, m.Keys.cancel) && m.IsInsertMode:

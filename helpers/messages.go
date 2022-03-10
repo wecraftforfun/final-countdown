@@ -14,6 +14,10 @@ type UpdateListMsg struct {
 	Countdowns []models.CountDown
 }
 
+type SaveListMsg struct {
+	Countdowns []models.CountDown
+}
+
 type GoBackToList struct{}
 
 type EnterEditMode struct{}
