@@ -1,12 +1,14 @@
 package tui
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mjehanno/timer/cmds"
@@ -14,18 +16,20 @@ import (
 	"github.com/mjehanno/timer/models"
 )
 
+const timeout = time.Hour * 5
+
 var (
-	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle  = focusedStyle.Copy()
-	noStyle      = lipgloss.NewStyle()
+	focusedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	cursorStyle        = focusedStyle.Copy()
+	noStyle            = lipgloss.NewStyle()
+	statusMessageStyle = focusedStyle.Copy().Margin(2)
 )
 
 type AppModel struct {
 	Choices      []models.CountDown
-	FocusIndex   int              // items on the timer list
-	Cursor       int              // which timer list item our cursor is pointing at
-	Selected     map[int]struct{} // which timer items are selected
+	FocusIndex   int // items on the timer list
+	Cursor       int // which timer list item our cursor is pointing at
+	Timer        timer.Model
 	Inputs       []textinput.Model
 	Keys         keyMap
 	Help         help.Model
@@ -35,19 +39,20 @@ type AppModel struct {
 
 type keyMap struct {
 	insertItem key.Binding
+	deleteItem key.Binding
 	cancel     key.Binding
 	quit       key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.insertItem, k.cancel, k.quit}
+	return []key.Binding{k.insertItem, k.deleteItem, k.cancel, k.quit}
 }
 
 // FullHelp returns keybindings for the expanded help view. It's part of the
 // key.Map interface.
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.insertItem, k.cancel, k.quit},
+		{k.insertItem, k.deleteItem, k.cancel, k.quit},
 	}
 }
 
@@ -56,6 +61,10 @@ func newListKeyMap() keyMap {
 		insertItem: key.NewBinding(
 			key.WithKeys("a"),
 			key.WithHelp("a", "Add a new countdown"),
+		),
+		deleteItem: key.NewBinding(
+			key.WithKeys("d"),
+			key.WithHelp("d", "Delete current countdown"),
 		),
 		cancel: key.NewBinding(
 			key.WithKeys("end"),
@@ -71,12 +80,14 @@ func newListKeyMap() keyMap {
 
 func InitialModel() AppModel {
 	m := AppModel{
-		Selected: make(map[int]struct{}),
-		Keys:     newListKeyMap(),
-		Help:     help.New(),
-		Inputs:   make([]textinput.Model, 3),
-		List:     list.New(nil, helpers.NewListDelegate(), 1000, 15),
+		Keys:   newListKeyMap(),
+		Help:   help.New(),
+		Inputs: make([]textinput.Model, 3),
+		List:   list.New(nil, helpers.NewListDelegate(), 1000, 15),
+		Timer:  timer.New(0),
 	}
+
+	m.List.Styles.StatusBar = statusMessageStyle
 	m.List.SetShowHelp(false)
 	m.List.KeyMap = list.DefaultKeyMap()
 	return m
@@ -126,19 +137,33 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Inputs = make([]textinput.Model, 3)
 		m.Keys.cancel.SetEnabled(false)
 		m.Keys.insertItem.SetEnabled(true)
+		m.Keys.deleteItem.SetEnabled(true)
 	case helpers.EnterEditMode:
 		m.IsInsertMode = true
 		m.Keys.cancel.SetEnabled(true)
 		m.Keys.insertItem.SetEnabled(false)
+		m.Keys.deleteItem.SetEnabled(false)
 		m.Inputs = createForms(m)
 		cmd := m.updateInputs(msg)
 		m.Inputs[0].Focus()
 		return tea.Model(m), cmd
+	case timer.TickMsg:
+		var cmd tea.Cmd
+		m.Timer, cmd = m.Timer.Update(msg)
+		return m, cmd
+	case timer.StartStopMsg:
+		var cmd tea.Cmd
+		m.Timer, cmd = m.Timer.Update(msg)
+		return m, cmd
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.insertItem) && !m.IsInsertMode:
 			// Entering creation mode to add item
 			return tea.Model(m), tea.Batch(cmds.EnterEditMode)
+		case key.Matches(msg, m.Keys.deleteItem):
+			m.Choices = append(m.Choices[:m.List.Cursor()], m.Choices[m.List.Cursor()+1:]...)
+			m.List.RemoveItem(m.List.Cursor())
+			return tea.Model(m), tea.Batch(cmds.SaveListCmd(m.Choices))
 		case !m.IsInsertMode && (msg.String() == "up" || msg.String() == "down"):
 			// Moving through the list
 			if msg.String() == "up" {
@@ -186,13 +211,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Choices = append(m.Choices, c)
 			m.List.InsertItem(len(m.Choices), c)
 			return tea.Model(m), tea.Batch(cmds.SaveListCmd(m.Choices), cmds.GoBackToList)
+		case !m.IsInsertMode && msg.String() == "enter":
+			m.Timer = timer.New(time.Until(m.Choices[m.List.Cursor()].DueDate.Time))
+			return tea.Model(m), m.Timer.Start()
 		case key.Matches(msg, m.Keys.quit):
 			return tea.Model(m), tea.Quit
 		case key.Matches(msg, m.Keys.cancel) && m.IsInsertMode:
-			m.IsInsertMode = false
-			m.Inputs = make([]textinput.Model, 3)
-			m.Keys.cancel.SetEnabled(false)
-			m.Keys.insertItem.SetEnabled(true)
+			return tea.Model(m), cmds.GoBackToList
 		}
 	}
 
@@ -225,6 +250,13 @@ func (m AppModel) View() string {
 		}
 	} else {
 		s += m.List.View()
+		if m.Timer.Timeout != time.Hour*5 {
+			days := int(m.Timer.Timeout.Seconds()) / (24 * 3600)
+			hours := (int(m.Timer.Timeout.Seconds()) - days*(24*3600)) / 3600
+			min := (int(m.Timer.Timeout.Seconds()) - days*(24*3600) - hours*3600) / 60
+			sec := (int(m.Timer.Timeout.Seconds()) - days*(24*3600) - hours*3600 - min*60)
+			s += fmt.Sprintf("%vd%vh%vm%vs", days, hours, min, sec)
+		}
 	}
 	return s + "\n" + helpView
 }
