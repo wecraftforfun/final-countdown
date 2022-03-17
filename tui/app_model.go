@@ -19,10 +19,11 @@ import (
 const timeout = time.Hour * 5
 
 var (
+	listTitleStyle     = lipgloss.NewStyle().Padding(0, 1).Background(lipgloss.Color("#BE008F")).Bold(true)
 	focusedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	cursorStyle        = focusedStyle.Copy()
 	noStyle            = lipgloss.NewStyle()
-	statusMessageStyle = focusedStyle.Copy().Margin(2)
+	statusMessageStyle = focusedStyle.Copy()
 )
 
 type AppModel struct {
@@ -86,7 +87,6 @@ func InitialModel() AppModel {
 		List:   list.New(nil, helpers.NewListDelegate(), 1000, 15),
 		Timer:  timer.New(0),
 	}
-
 	m.List.Styles.StatusBar = statusMessageStyle
 	m.List.SetShowHelp(false)
 	m.List.KeyMap = list.DefaultKeyMap()
@@ -239,9 +239,8 @@ func (m *AppModel) updateInputs(msg tea.Msg) tea.Cmd {
 }
 
 func (m AppModel) View() string {
-	m.List.Title = "Which timer do you want to look at ?"
+	m.List.Title = "Which countdown do you want to look at ?"
 	var s string
-	//s :=
 	helpView := m.Help.View(m.Keys)
 	if m.IsInsertMode {
 		for _, input := range m.Inputs {

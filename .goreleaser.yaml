@@ -36,3 +36,31 @@ brews:
   tap:
     owner: wecraftforfun
     name: homebrew-tools
+snapcrafts:
+  -
+    # ID of the snapcraft config, must be unique.
+    # Defaults to "default".
+    id: snap-final-countdown
+
+    # Build IDs for the builds you want to create snapcraft packages for.
+    # Defaults to all builds.
+    builds:
+    - snap-final-countdown
+
+    # You can change the name of the package.
+    # Default: `{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}`
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    # Replacements for GOOS and GOARCH in the package name.
+    # Keys should be valid GOOSs or GOARCHs.
+    # Values are the respective replacements.
+    # Default is empty.
+    replacements:
+      amd64: 64-bit
+      386: 32-bit
+      darwin: macOS
+      linux: Tux
+    license: GPL-3.0-only
+    publish: true
+    summary: TUI for managing countdowns to special events
+    description: A simple CLI App made for managing a list of countdown.
