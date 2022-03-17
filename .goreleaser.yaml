@@ -30,3 +30,9 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+brews:
+- name: final-countdown
+  homepage: https://github.com/wecraftforfun/homebrew-tools 
+  tap:
+    owner: wecraftforfun
+    name: homebrew-tools
