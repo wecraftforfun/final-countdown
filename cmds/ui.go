@@ -2,7 +2,7 @@ package cmds
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mjehanno/timer/helpers"
+	"github.com/wecraftforfun/final-countdown/helpers"
 )
 
 func GoBackToList() tea.Msg {

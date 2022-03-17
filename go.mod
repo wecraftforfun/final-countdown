@@ -1,4 +1,4 @@
-module github.com/mjehanno/timer
+module github.com/wecraftforfun/final-countdown
 
 go 1.17
 

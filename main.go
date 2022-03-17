@@ -5,7 +5,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mjehanno/timer/tui"
+	"github.com/wecraftforfun/final-countdown/tui"
 )
 
 func main() {

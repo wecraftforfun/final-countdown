@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mjehanno/timer/cmds"
-	"github.com/mjehanno/timer/helpers"
-	"github.com/mjehanno/timer/models"
+	"github.com/wecraftforfun/final-countdown/cmds"
+	"github.com/wecraftforfun/final-countdown/helpers"
+	"github.com/wecraftforfun/final-countdown/models"
 )
 
 const timeout = time.Hour * 5

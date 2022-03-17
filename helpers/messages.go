@@ -3,7 +3,7 @@ package helpers
 import (
 	"fmt"
 
-	"github.com/mjehanno/timer/models"
+	"github.com/wecraftforfun/final-countdown/models"
 )
 
 type ErrorMsg struct {
