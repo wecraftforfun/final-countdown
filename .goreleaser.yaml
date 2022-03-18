@@ -64,3 +64,11 @@ snapcrafts:
     publish: true
     summary: TUI for managing countdowns to special events
     description: A simple CLI App made for managing a list of countdown.
+    apps:
+      plugs: ["home", "personal-files"]
+    plugs:
+      personal-files:
+        read:
+        - $HOME/.countdown.json
+        write:
+        - $HOME/.countdown.json
