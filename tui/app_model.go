@@ -24,18 +24,19 @@ var (
 	cursorStyle        = focusedStyle.Copy()
 	noStyle            = lipgloss.NewStyle()
 	statusMessageStyle = focusedStyle.Copy()
+	errorMessageStyle  = lipgloss.NewStyle().Background(lipgloss.Color("#B21009"))
 )
 
 type AppModel struct {
 	Choices      []models.CountDown
 	FocusIndex   int // items on the timer list
-	Cursor       int // which timer list item our cursor is pointing at
 	Timer        timer.Model
 	Inputs       []textinput.Model
 	Keys         keyMap
 	Help         help.Model
 	List         list.Model
 	IsInsertMode bool
+	Err          error
 }
 
 type keyMap struct {
@@ -84,7 +85,7 @@ func InitialModel() AppModel {
 		Keys:   newListKeyMap(),
 		Help:   help.New(),
 		Inputs: make([]textinput.Model, 3),
-		List:   list.New(nil, helpers.NewListDelegate(), 1000, 15),
+		List:   list.New(nil, helpers.NewListDelegate(), 1000, 15), //1000,15
 		Timer:  timer.New(0),
 	}
 	m.List.Styles.StatusBar = statusMessageStyle
@@ -129,16 +130,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Choices = append(m.Choices, v)
 		}
 	case helpers.ErrorMsg:
-		m.List.NewStatusMessage(msg.Error())
+		m.Err = msg
 	case helpers.GoBackToList:
+		m.Err = nil
 		m.IsInsertMode = false
 		m.FocusIndex = 0
-		m.Cursor = 0
 		m.Inputs = make([]textinput.Model, 3)
 		m.Keys.cancel.SetEnabled(false)
 		m.Keys.insertItem.SetEnabled(true)
 		m.Keys.deleteItem.SetEnabled(true)
 	case helpers.EnterEditMode:
+		m.Err = nil
 		m.IsInsertMode = true
 		m.Keys.cancel.SetEnabled(true)
 		m.Keys.insertItem.SetEnabled(false)
@@ -256,6 +258,9 @@ func (m AppModel) View() string {
 			sec := (int(m.Timer.Timeout.Seconds()) - days*(24*3600) - hours*3600 - min*60)
 			s += fmt.Sprintf("%vd%vh%vm%vs", days, hours, min, sec)
 		}
+	}
+	if m.Err != nil {
+		s += "\n" + errorMessageStyle.Render(m.Err.Error())
 	}
 	return s + "\n" + helpView
 }
