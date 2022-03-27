@@ -19,4 +19,4 @@ then
 
 ## Usage 
 
-![final-countdown running](https://gifyu.com/image/Spn8r "app running")
+![final-countdown running](https://s7.gifyu.com/images/2022-03-27-19-14-11-47.gif "app running")
